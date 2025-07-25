@@ -1,0 +1,24 @@
+{
+  "name": "iceberg-zk-circuits",
+  "version": "1.0.0",
+  "description": "Zero-knowledge circuits for anonymous swap protocol",
+  "scripts": {
+    "install-circom": "curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh && cargo install --git https://github.com/iden3/circom.git circom",
+    "compile": "circom withdraw.circom --r1cs --wasm --sym --c",
+    "setup": "snarkjs powersoftau new bn128 12 pot12_0000.ptau && snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name='First contribution' -v && snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v",
+    "build-zkey": "snarkjs groth16 setup withdraw.r1cs pot12_final.ptau withdraw_0000.zkey && snarkjs zkey contribute withdraw_0000.zkey withdraw_0001.zkey --name='1st Contributor' -v && snarkjs zkey export verificationkey withdraw_0001.zkey verification_key.json",
+    "generate-verifier": "snarkjs zkey export solidityverifier withdraw_0001.zkey ../contracts/Verifier.sol",
+    "test-circuit": "node test/test-circuit.js",
+    "build-all": "npm run compile && npm run setup && npm run build-zkey && npm run generate-verifier",
+    "clean": "rm -f *.ptau *.zkey *.r1cs *.wasm *.sym verification_key.json"
+  },
+  "dependencies": {
+    "snarkjs": "^0.7.0",
+    "circomlib": "^2.0.5",
+    "ffjavascript": "^0.2.60"
+  },
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0"
+  }
+}
