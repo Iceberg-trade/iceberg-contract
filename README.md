@@ -276,24 +276,32 @@ cd .. && npx hardhat test
 
 ## 📚 API文档
 
-### 合约接口
+### 前端交互接口
 
-#### AnonymousSwapPool
+- GET /api/v1/pool/poollist 获得swapConfig列表
+  swapConfig{
+      swapConfigId
+      tokenInAddress
+  }
 
 - `deposit(bytes32 commitment, uint256 swapConfigId)`: 用户存款
-- `executeSwap(bytes32 nullifierHash, uint256 amountOut)`: 执行swap（仅operator）
+  - commitment=hash(nullifier,secret)
+
+- GET /api/v1/depositTxStatus/{address} waiting deposit tx confirmed
+
+- ``: 提交swap意图
+- `POST /api/v1/intent(bytes32 nullifierHash, uint256 minAmountOut, address tokenOutAddress,string signature)`: 执行swap（仅operator）
+  - nullifierHash=hash(nullifier)
+
+- GET /api/v1/swapResult/{nullifierHash,sign} return swap outAmount of tokenB
+
 - `withdraw(bytes32 nullifierHash, address recipient, uint256[8] proof)`: 用户提取
+  - nullifierHash=hash(nullifier)
+  - proof 前端调用电路生成函数
 
-#### SwapOperator
+- GET /api/v1/withdrawTxStatus/{bytes32 nullifierHash,address recipient, string sign} 
 
-- `executeSingleSwap(bytes32 nullifierHash, uint256 swapConfigId, bytes oneInchData)`: 执行单个swap
-- `executeBatchSwap(...)`: 批量执行swap
 
-### 后台服务API
-
-- `POST /api/v1/swap/intent`: 提交swap意图
-- `GET /api/v1/swap/status/{nullifierHash}`: 查询swap状态
-- `GET /api/v1/merkle/proof/{commitment}`: 获取merkle proof
 
 ## 🔐 ZK电路系统
 

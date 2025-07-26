@@ -17,36 +17,37 @@ async function main() {
   console.log("📝 部署账户:", deployer.address);
   console.log("💰 账户余额:", ethers.utils.formatEther(await deployer.getBalance()), "ETH");
 
-  // 1. 部署MockUSDC
-  console.log("\n📄 部署MockUSDC...");
-  const MockERC20Factory = await ethers.getContractFactory("MockERC20");
-  const mockUSDC = await MockERC20Factory.deploy(
-    "Mock USDC",
-    "USDC",
-    6, // USDC通常是6位小数
-    ethers.utils.parseUnits("1000000", 6) // 初始供应量：100万USDC
+  console.log("\n📄 部署测试代币...");
+
+  // 获取TestToken合约工厂
+  const TestTokenFactory = await ethers.getContractFactory("TestToken");
+  
+  // 部署MockUSDC (6位小数)
+  const mockUSDC = await TestTokenFactory.deploy(
+    "Mock USDC", 
+    "USDC", 
+    6, 
+    ethers.utils.parseUnits("1000000", 6)
   );
   await mockUSDC.deployed();
   console.log("✅ MockUSDC部署成功:", mockUSDC.address);
 
-  // 2. 部署MockUSDT（可选）
-  console.log("\n📄 部署MockUSDT...");
-  const mockUSDT = await MockERC20Factory.deploy(
-    "Mock USDT",
-    "USDT",
-    6, // USDT通常是6位小数
-    ethers.utils.parseUnits("1000000", 6) // 初始供应量：100万USDT
+  // 部署MockUSDT (6位小数)
+  const mockUSDT = await TestTokenFactory.deploy(
+    "Mock USDT", 
+    "USDT", 
+    6, 
+    ethers.utils.parseUnits("1000000", 6)
   );
   await mockUSDT.deployed();
   console.log("✅ MockUSDT部署成功:", mockUSDT.address);
 
-  // 3. 部署MockDAI（可选）
-  console.log("\n📄 部署MockDAI...");
-  const mockDAI = await MockERC20Factory.deploy(
-    "Mock DAI",
-    "DAI",
-    18, // DAI是18位小数
-    ethers.utils.parseEther("1000000") // 初始供应量：100万DAI
+  // 部署MockDAI (18位小数)
+  const mockDAI = await TestTokenFactory.deploy(
+    "Mock DAI", 
+    "DAI", 
+    18, 
+    ethers.utils.parseEther("1000000")
   );
   await mockDAI.deployed();
   console.log("✅ MockDAI部署成功:", mockDAI.address);
@@ -82,6 +83,13 @@ async function main() {
   const configPath = path.join(__dirname, "../deployment-tokens.json");
   fs.writeFileSync(configPath, JSON.stringify(tokenConfig, null, 2));
   console.log("\n📄 代币配置已保存到:", configPath);
+  
+  // 6. 输出地址供复制使用
+  console.log("\n📋 代币地址 (复制到其他脚本使用):");
+  console.log(`USDC: "${mockUSDC.address}"`);
+  console.log(`USDT: "${mockUSDT.address}"`);
+  console.log(`DAI: "${mockDAI.address}"`);
+  console.log("\n💡 现在可以将这些地址复制到 deploy.ts 和 setup-local.ts 中");
 
   // 6. 给一些测试账户mint代币用于测试
   console.log("\n🪙 为测试账户分发代币...");

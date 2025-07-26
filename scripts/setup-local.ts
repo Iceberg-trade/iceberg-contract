@@ -1,4 +1,6 @@
 import { ethers } from "hardhat";
+import * as fs from "fs";
+import * as path from "path";
 const { poseidon1, poseidon2 } = require("poseidon-lite");
 
 /**
@@ -10,9 +12,9 @@ async function main() {
 
   const [deployer, operator, user1, user2, user3] = await ethers.getSigners();
 
-  // 获取最新部署的合约地址（hardhat本地网络的第一个部署通常是这个地址）
-  const poolAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // 需要替换为实际地址
-  console.log("⚠️  请确保合约地址正确:", poolAddress);
+  // 获取最新部署的合约地址
+  const poolAddress = "0x59b670e9fA9D0A427751Af201D676719a970857b"; // AnonymousSwapPool地址
+  console.log("📍 使用AnonymousSwapPool地址:", poolAddress);
   
   const pool = await ethers.getContractAt("AnonymousSwapPool", poolAddress);
 
@@ -99,7 +101,7 @@ async function main() {
     const swapOutput = ethers.utils.parseEther((0.95 + i * 0.01).toString()); // 模拟不同的swap输出
     
     console.log(`  执行Swap ${i + 1}...`);
-    const tx = await pool.connect(operator).recordSwapResult(nullifierHash, swapOutput);
+    const tx = await pool.connect(deployer).recordSwapResult(nullifierHash, swapOutput); // 使用deployer作为operator
     await tx.wait();
     console.log(`  ✅ Swap记录成功, 输出: ${ethers.utils.formatEther(swapOutput)} ETH`);
   }
