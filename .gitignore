@@ -70,10 +70,7 @@ circuits/proofs/witnesses/
 !circuits/proofs/
 !circuits/proofs/inputs/
 !circuits/proofs/examples/
-!circuits/proofs/inputs/input_simple_basic.json
 !circuits/proofs/inputs/input_withdraw_complete.json
-!circuits/proofs/examples/proof_simple.json
-!circuits/proofs/examples/public_simple.json
 
 # Powers of Tau files (keep only the final ones we need)
 circuits/keys/powersoftau/pot*_*.ptau
