@@ -24,13 +24,19 @@ coverage.json
 # Build outputs
 dist/
 build/
+out/
 
 # IDE
 .vscode/
+!.vscode/settings.json
+!.vscode/launch.json
 .idea/
 *.swp
 *.swo
 *~
+
+# Claude Code configuration
+.claude/
 
 # OS
 .DS_Store
@@ -44,12 +50,40 @@ logs/
 tmp/
 temp/
 
-# Circom
+# Zero-Knowledge Circuit Files
 *.r1cs
 *.wasm
 *.zkey
 *.vkey
+*.sym
+*.wtns
 circuits/build/
+
+# ZK Keys and Proofs (ignore generated files but keep examples)
+circuits/keys/
+circuits/proofs/proof_*.json
+circuits/proofs/public_*.json  
+circuits/proofs/witness_*.wtns
+circuits/proofs/witnesses/
+
+# Keep important example and input files
+!circuits/proofs/
+!circuits/proofs/inputs/
+!circuits/proofs/examples/
+!circuits/proofs/inputs/input_simple_basic.json
+!circuits/proofs/inputs/input_withdraw_complete.json
+!circuits/proofs/examples/proof_simple.json
+!circuits/proofs/examples/public_simple.json
+
+# Powers of Tau files (keep only the final ones we need)
+circuits/keys/powersoftau/pot*_*.ptau
+!circuits/keys/powersoftau/pot12_final.ptau
+!circuits/keys/powersoftau/pot13_final.ptau
+
+# Generated verifier contracts
+contracts/*Verifier.sol
+!contracts/IGroth16Verifier.sol
+!contracts/IWithdrawVerifier.sol
 
 # Deployment artifacts
 deployments/
@@ -58,3 +92,22 @@ deployment.json
 # Test artifacts
 .coverage_contracts/
 .coverage_artifacts/
+
+# Circuit development temporary files
+circuits/FINAL_STRUCTURE_README.md
+circuits/NEW_STRUCTURE_README.md
+circuits/docs/CLEAN_README.md
+circuits/docs/ZK_SYSTEM_COMPLETE.md
+circuits/isequal.sym
+circuits/withdraw_basic_fixed*.sym
+circuits/withdraw_basic_fixed_new.sym
+
+# Temporary input and proof files for testing
+circuits/proofs/inputs/input_*_test.json
+circuits/proofs/inputs/input_*_temp.json
+circuits/proofs/examples/proof_*_test.json
+circuits/proofs/examples/public_*_test.json
+
+# Generated scripts outputs
+circuits/scripts/output/
+circuits/scripts/temp/
