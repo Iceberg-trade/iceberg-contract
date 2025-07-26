@@ -27,106 +27,82 @@ fi
 cd "$PROJECT_ROOT"
 
 # 确保目录结构存在
-mkdir -p keys/powersoftau keys/withdraw_simple keys/withdraw_basic_fixed
-mkdir -p build/withdraw_simple build/withdraw_basic_fixed
+mkdir -p keys/powersoftau keys/withdraw
+mkdir -p build/withdraw
 mkdir -p proofs/examples proofs/witnesses
 
 echo "📦 Step 1: Powers of Tau ceremony..."
 
-# 使用我们生成的Powers of Tau文件
-if [ ! -f "keys/powersoftau/pot12_final.ptau" ]; then
-    echo "❌ Powers of Tau not found. Please run ./scripts/setup-powersoftau.sh first"
+# 检查电路复杂度，选择合适的Powers of Tau文件
+CIRCUIT_SIZE=4207  # withdraw circuit has 4207 constraints
+POT_FILE="pot13_final.ptau"  # pot13 supports 2^13 = 8192 constraints
+
+if [ ! -f "keys/powersoftau/$POT_FILE" ]; then
+    echo "❌ Powers of Tau ($POT_FILE) not found. Circuit needs 2^13 or higher."
+    echo "   Available files:"
+    ls -la keys/powersoftau/
+    echo "   Please ensure pot13_final.ptau exists for circuit with $CIRCUIT_SIZE constraints"
     exit 1
 fi
 
-echo "✅ Using our generated Powers of Tau: keys/powersoftau/pot12_final.ptau"
+echo "✅ Using Powers of Tau: keys/powersoftau/$POT_FILE (for circuit with $CIRCUIT_SIZE constraints)"
 
 echo "🔧 Step 2: Generating proving keys for circuits..."
 
-# 为withdraw_simple电路生成密钥
-if [ -f "build/withdraw_simple/withdraw_simple.r1cs" ]; then
-    echo "🔑 Processing withdraw_simple circuit..."
+# 为withdraw电路生成密钥
+if [ -f "build/withdraw/withdraw.r1cs" ]; then
+    echo "🔑 Processing withdraw circuit..."
     
     # 生成zkey文件
-    snarkjs groth16 setup build/withdraw_simple/withdraw_simple.r1cs keys/powersoftau/pot12_final.ptau keys/withdraw_simple/withdraw_simple_0000.zkey
+    snarkjs groth16 setup build/withdraw/withdraw.r1cs keys/powersoftau/$POT_FILE keys/withdraw/withdraw_0000.zkey
     
     # 贡献随机性（生产环境需要多方参与）
-    echo "test random entropy" | snarkjs zkey contribute keys/withdraw_simple/withdraw_simple_0000.zkey keys/withdraw_simple/withdraw_simple_0001.zkey --name="First contribution"
+    echo "test random entropy for withdraw circuit" | snarkjs zkey contribute keys/withdraw/withdraw_0000.zkey keys/withdraw/withdraw_0001.zkey --name="First contribution"
     
     # 导出验证密钥
-    snarkjs zkey export verificationkey keys/withdraw_simple/withdraw_simple_0001.zkey keys/withdraw_simple/withdraw_simple_verification_key.json
+    snarkjs zkey export verificationkey keys/withdraw/withdraw_0001.zkey keys/withdraw/withdraw_verification_key.json
     
     # 生成Solidity验证合约
-    snarkjs zkey export solidityverifier keys/withdraw_simple/withdraw_simple_0001.zkey ../contracts/WithdrawSimpleVerifier.sol
+    snarkjs zkey export solidityverifier keys/withdraw/withdraw_0001.zkey ../contracts/WithdrawVerifier.sol
     
-    echo "✅ withdraw_simple keys generated"
-fi
-
-# 为withdraw_basic_fixed电路生成密钥
-if [ -f "build/withdraw_basic_fixed/withdraw_basic_fixed.r1cs" ]; then
-    echo "🔑 Processing withdraw_basic_fixed circuit..."
-    
-    # 生成zkey文件
-    snarkjs groth16 setup build/withdraw_basic_fixed/withdraw_basic_fixed.r1cs keys/powersoftau/pot12_final.ptau keys/withdraw_basic_fixed/withdraw_basic_fixed_0000.zkey
-    
-    # 贡献随机性
-    echo "test random entropy basic fixed" | snarkjs zkey contribute keys/withdraw_basic_fixed/withdraw_basic_fixed_0000.zkey keys/withdraw_basic_fixed/withdraw_basic_fixed_0001.zkey --name="First contribution"
-    
-    # 导出验证密钥
-    snarkjs zkey export verificationkey keys/withdraw_basic_fixed/withdraw_basic_fixed_0001.zkey keys/withdraw_basic_fixed/withdraw_basic_fixed_verification_key.json
-    
-    # 生成Solidity验证合约
-    snarkjs zkey export solidityverifier keys/withdraw_basic_fixed/withdraw_basic_fixed_0001.zkey ../contracts/WithdrawBasicFixedVerifier.sol
-    
-    echo "✅ withdraw_basic_fixed keys generated"
+    echo "✅ withdraw circuit keys generated"
+else
+    echo "❌ withdraw.r1cs not found. Please compile circuit first."
+    exit 1
 fi
 
 echo "🎯 Step 3: Testing proof generation..."
 
-# 测试simple电路的完整证明流程
-if [ -f "keys/withdraw_simple/withdraw_simple_0001.zkey" ] && [ -f "proofs/inputs/input_simple_correct.json" ]; then
-    echo "🧪 Testing withdraw_simple proof generation..."
+# 测试withdraw电路的完整证明流程
+if [ -f "keys/withdraw/withdraw_0001.zkey" ] && [ -f "proofs/inputs/input_basic_fixed_complete.json" ]; then
+    echo "🧪 Testing withdraw circuit proof generation..."
     
     # 生成见证
-    snarkjs wtns calculate build/withdraw_simple/withdraw_simple_js/withdraw_simple.wasm proofs/inputs/input_simple_correct.json proofs/witnesses/witness_simple_test.wtns
+    snarkjs wtns calculate build/withdraw/withdraw_js/withdraw.wasm proofs/inputs/input_basic_fixed_complete.json proofs/witnesses/witness_withdraw_final.wtns
     
     # 生成证明
-    snarkjs groth16 prove keys/withdraw_simple/withdraw_simple_0001.zkey proofs/witnesses/witness_simple_test.wtns proofs/examples/proof_simple.json proofs/examples/public_simple.json
+    snarkjs groth16 prove keys/withdraw/withdraw_0001.zkey proofs/witnesses/witness_withdraw_final.wtns proofs/proof_withdraw_final.json proofs/public_withdraw_final.json
     
     # 验证证明
-    snarkjs groth16 verify keys/withdraw_simple/withdraw_simple_verification_key.json proofs/examples/public_simple.json proofs/examples/proof_simple.json
+    snarkjs groth16 verify keys/withdraw/withdraw_verification_key.json proofs/public_withdraw_final.json proofs/proof_withdraw_final.json
     
-    echo "✅ withdraw_simple proof verification successful!"
-fi
-
-# 测试basic_fixed电路的完整证明流程
-if [ -f "keys/withdraw_basic_fixed/withdraw_basic_fixed_0001.zkey" ] && [ -f "proofs/inputs/input_poseidon_correct.json" ]; then
-    echo "🧪 Testing withdraw_basic_fixed proof generation..."
-    
-    # 生成见证
-    snarkjs wtns calculate build/withdraw_basic_fixed/withdraw_basic_fixed_js/withdraw_basic_fixed.wasm proofs/inputs/input_poseidon_correct.json proofs/witnesses/witness_basic_fixed_test.wtns
-    
-    # 如果见证生成成功，继续生成证明
-    if [ -f "proofs/witnesses/witness_basic_fixed_test.wtns" ]; then
-        snarkjs groth16 prove keys/withdraw_basic_fixed/withdraw_basic_fixed_0001.zkey proofs/witnesses/witness_basic_fixed_test.wtns proofs/examples/proof_basic_fixed.json proofs/examples/public_basic_fixed.json
-        snarkjs groth16 verify keys/withdraw_basic_fixed/withdraw_basic_fixed_verification_key.json proofs/examples/public_basic_fixed.json proofs/examples/proof_basic_fixed.json
-        echo "✅ withdraw_basic_fixed proof verification successful!"
-    else
-        echo "⚠️  withdraw_basic_fixed witness generation failed"
-    fi
+    echo "✅ withdraw circuit proof verification successful!"
+else
+    echo "⚠️  Missing files for withdraw circuit testing:"
+    echo "     - Proving key: keys/withdraw/withdraw_0001.zkey"
+    echo "     - Input file: proofs/inputs/input_basic_fixed_complete.json"
 fi
 
 echo ""
 echo "🎉 ZK proof system setup complete!"
 echo ""
 echo "📂 Generated files:"
-echo "  📁 keys/ - Contains zkey files and verification keys"
-echo "  📁 contracts/ - Contains Solidity verifier contracts"
-echo "  📁 proofs/examples/ - Example proofs"
-echo "  📁 proofs/witnesses/ - Generated witnesses"
+echo "  📁 keys/withdraw/ - Contains withdraw circuit zkey files and verification keys"
+echo "  📁 ../contracts/WithdrawVerifier.sol - Solidity verifier contract"
+echo "  📁 proofs/ - Contains example proofs and witnesses"
 echo ""
 echo "🔧 Next steps:"
-echo "  1. Update smart contracts to use generated verifiers"
-echo "  2. Integrate proof generation into your application"
-echo "  3. Test end-to-end functionality"
+echo "  1. Test circuit functionality: Run 'npx hardhat test test/ZKProof.test.js'"
+echo "  2. Test contract integration: Run 'npx hardhat test'"
+echo "  3. Deploy contracts for production use"
 echo ""

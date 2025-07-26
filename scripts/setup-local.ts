@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+const { poseidon1, poseidon2 } = require("poseidon-lite");
 
 /**
  * 本地开发环境设置脚本
@@ -9,8 +10,10 @@ async function main() {
 
   const [deployer, operator, user1, user2, user3] = await ethers.getSigners();
 
-  // 假设合约已部署，获取合约实例
-  const poolAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // 替换为实际地址
+  // 获取最新部署的合约地址（hardhat本地网络的第一个部署通常是这个地址）
+  const poolAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // 需要替换为实际地址
+  console.log("⚠️  请确保合约地址正确:", poolAddress);
+  
   const pool = await ethers.getContractAt("AnonymousSwapPool", poolAddress);
 
   console.log("📝 使用的账户:");
@@ -41,14 +44,19 @@ async function main() {
     }
   ];
 
-  // 计算commitments
+  // 计算commitments使用Poseidon哈希
   const commitments = testCommitments.map(item => {
-    return ethers.utils.keccak256(
-      ethers.utils.solidityPack(["bytes32", "bytes32"], [item.nullifier, item.secret])
-    );
+    // commitment = poseidon2(nullifier, secret)
+    const commitment = poseidon2([
+      ethers.BigNumber.from(item.nullifier).toString(),
+      ethers.BigNumber.from(item.secret).toString()
+    ]);
+    return "0x" + ethers.BigNumber.from(commitment.toString()).toHexString().slice(2).padStart(64, '0');
   });
 
   console.log("  生成的commitments:", commitments.length);
+  console.log("  示例commitment:", commitments[0]);
+  console.log("  使用Poseidon哈希: commitment = poseidon2(nullifier, secret)");
 
   // 2. 执行存款操作
   console.log("\n💰 执行测试存款...");
@@ -75,18 +83,25 @@ async function main() {
   // 4. 模拟swap执行
   console.log("\n🔄 模拟Swap执行...");
   
-  const nullifierHashes = testCommitments.map(item => 
-    ethers.utils.keccak256(ethers.utils.solidityPack(["bytes32"], [item.nullifier]))
-  );
+  // 计算nullifierHashes使用Poseidon哈希
+  const nullifierHashes = testCommitments.map(item => {
+    // nullifierHash = poseidon1(nullifier)
+    const nullifierHash = poseidon1([ethers.BigNumber.from(item.nullifier).toString()]);
+    return "0x" + ethers.BigNumber.from(nullifierHash.toString()).toHexString().slice(2).padStart(64, '0');
+  });
+
+  console.log("  生成的nullifierHashes:", nullifierHashes.length);
+  console.log("  示例nullifierHash:", nullifierHashes[0]);
+  console.log("  使用Poseidon哈希: nullifierHash = poseidon1(nullifier)");
 
   for (let i = 0; i < nullifierHashes.length; i++) {
     const nullifierHash = nullifierHashes[i];
     const swapOutput = ethers.utils.parseEther((0.95 + i * 0.01).toString()); // 模拟不同的swap输出
     
     console.log(`  执行Swap ${i + 1}...`);
-    const tx = await pool.connect(operator).executeSwap(nullifierHash, swapOutput);
+    const tx = await pool.connect(operator).recordSwapResult(nullifierHash, swapOutput);
     await tx.wait();
-    console.log(`  ✅ Swap成功, 输出: ${ethers.utils.formatEther(swapOutput)} ETH`);
+    console.log(`  ✅ Swap记录成功, 输出: ${ethers.utils.formatEther(swapOutput)} ETH`);
   }
 
   // 5. 生成测试数据文件
@@ -144,7 +159,7 @@ async function main() {
 }
 
 main()
-  .then((data) => {
+  .then(() => {
     console.log("✅ 本地环境设置完成");
     process.exit(0);
   })
