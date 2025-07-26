@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025 Iceberg.trade. All rights reserved.
+ * 
+ * This software is proprietary and confidential. Unauthorized copying,
+ * distribution, or use is strictly prohibited.
+ */
+
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 
